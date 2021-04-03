@@ -45,16 +45,23 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
 
     // Verify an image_url was provided. If not, return an error
     if (image_url == undefined) {
-      res.status(400);
-      res.send("{image_url} required");
+      res.status(400).send("{image_url} required");
     } else {
       console.log("Filter: " + req.query.image_url);
             
       var filterd_image = await filterImageFromURL(image_url);
       console.log("Filtered image: " + filterd_image);
+
+      filterd_image = filterd_image + "testing";
       
-      res.status(200);
-      res.sendFile(filterd_image);
+      res.status(200).sendFile(filterd_image, function (err) {
+        if (err) {
+          console.log("Error returning filtered image");
+          res.status(404).send("Filtered image not found");
+        } else {
+          console.log("Filtered image retunred succesfully");
+        }
+      });      
     }
   } );
   
