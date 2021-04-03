@@ -52,15 +52,20 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
       var filterd_image = await filterImageFromURL(image_url);
       console.log("Filtered image: " + filterd_image);
 
-      filterd_image = filterd_image + "testing";
-      
+      // Attempt to send the filtered image
+      // Return a 404 error if the image cannot be returned      
       res.status(200).sendFile(filterd_image, function (err) {
         if (err) {
           console.log("Error returning filtered image");
           res.status(404).send("Filtered image not found");
         } else {
-          console.log("Filtered image retunred succesfully");
+          console.log("Filtered image returned succesfully");
         }
+
+        // Cleanup the server after the request has completed
+        console.log("Delete filtered image in: " + filterd_image);
+        deleteLocalFiles([filterd_image]);
+        console.log("Image filter request completed succesfully");
       });      
     }
   } );
