@@ -48,8 +48,13 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
       res.status(400);
       res.send("{image_url} required");
     } else {
-      console.log(req.query.image_url);
-      res.send("Filtering image: " + image_url);
+      console.log("Filter: " + req.query.image_url);
+            
+      var filterd_image = await filterImageFromURL(image_url);
+      console.log("Filtered image: " + filterd_image);
+      
+      res.status(200);
+      res.sendFile(filterd_image);
     }
   } );
   
