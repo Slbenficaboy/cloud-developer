@@ -46,28 +46,39 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
     // Verify an image_url was provided. If not, return an error
     if (image_url == undefined) {
       res.status(400).send("{image_url} required");
-    } else {
-      console.log("Filter: " + req.query.image_url);
-            
-      var filterd_image = await filterImageFromURL(image_url);
-      console.log("Filtered image: " + filterd_image);
-
-      // Attempt to send the filtered image
-      // Return a 404 error if the image cannot be returned      
-      res.status(200).sendFile(filterd_image, function (err) {
-        if (err) {
-          console.log("Error returning filtered image");
-          res.status(404).send("Filtered image not found");
-        } else {
-          console.log("Filtered image returned succesfully");
-        }
-
-        // Cleanup the server after the request has completed
-        console.log("Delete filtered image in: " + filterd_image);
-        deleteLocalFiles([filterd_image]);
-        console.log("Image filter request completed succesfully");
-      });      
+      console.log("No image_url provided");
+      return;
     }
+    console.log("Filter: " + req.query.image_url);
+
+    // Validate the image URL
+    var regx = new RegExp("^http.+(png|jpg|jpeg|tiff|gif|bmp)");
+    var isValidURL = regx.test(image_url);
+    console.log("Is valid URL: " + isValidURL);
+    if (!isValidURL) {
+      res.status(422).send("Invalid {image_url} provided");
+      return;
+    }
+          
+    // Filter the image
+    var filterd_image = await filterImageFromURL(image_url);
+    console.log("Filtered image: " + filterd_image);
+
+    // Attempt to send the filtered image
+    // Return a 404 error if the image cannot be returned      
+    res.status(200).sendFile(filterd_image, function (err) {
+      if (err) {
+        console.log("Error returning filtered image");
+        res.status(404).send("Filtered image not found");
+      } else {
+        console.log("Filtered image returned succesfully");
+      }
+
+      // Cleanup the server after the request has completed
+      console.log("Delete filtered image in: " + filterd_image);
+      deleteLocalFiles([filterd_image]);
+      console.log("Image filter request completed succesfully");
+    });  
   } );
   
   // Start the Server
