@@ -18,13 +18,46 @@ router.get('/', async (req: Request, res: Response) => {
 
 //@TODO
 //Add an endpoint to GET a specific resource by Primary Key
+router.get('/:id', async (req: Request, res: Response) => {
+    const item = await FeedItem.findByPk(req.params.id);
+    if (item == null) {
+        res.send(404).send("ID " + req.params.id + " does not exist")
+    } else {
+        res.send(item);
+    }
+});
 
 // update a specific resource
 router.patch('/:id', 
     requireAuth, 
     async (req: Request, res: Response) => {
         //@TODO try it yourself
-        res.send(500).send("not implemented")
+        const itemID = req.params.id;
+        // const item = await FeedItem.findByPk(itemID);
+        // if (item == null) {
+        //     res.send(404).send("ID " + req.params.id + " does not exist")
+        // }
+
+        const caption = req.body.caption;
+        console.log("caption->" + caption);
+
+        FeedItem.update(
+            {
+                caption: caption
+            },
+            {
+                where: {id: itemID}
+            }
+        ) 
+        .then (result => {res.send("Success")})
+        .catch(err => {res.send(404).send("ID " + req.params.id + " does not exist")})
+
+
+        // item.caption = caption;
+
+        
+
+        console.log("How did I get here?");
 });
 
 

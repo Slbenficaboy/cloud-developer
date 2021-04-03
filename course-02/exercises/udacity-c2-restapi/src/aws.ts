@@ -1,10 +1,10 @@
 import AWS = require('aws-sdk');
 import { config } from './config/config';
 
-const c = config.dev;
+const c = config;
 
 //Configure AWS
-var credentials = new AWS.SharedIniFileCredentials({profile: 'default'});
+var credentials = new AWS.SharedIniFileCredentials({profile: c.aws_profile});
 AWS.config.credentials = credentials;
 
 export const s3 = new AWS.S3({
@@ -29,7 +29,9 @@ export function getGetSignedUrl( key: string ): string{
         Key: key,
         Expires: signedUrlExpireSeconds
       });
+    console.log("Item " + key + " obtained the url " + url + " from bucket " + c.aws_media_bucket + " and expires in " + signedUrlExpireSeconds)
 
+    // return "https://raw.githubusercontent.com/Slbenficaboy/cloud-developer/master/course-02/exercises/udacity-c2-restapi/mock/xander0.jpg";
     return url;
 }
 
