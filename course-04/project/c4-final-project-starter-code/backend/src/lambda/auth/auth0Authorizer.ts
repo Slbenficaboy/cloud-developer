@@ -58,10 +58,20 @@ async function verifyToken(authHeader: string): Promise<JwtPayload> {
   const token = getToken(authHeader)
   const jwt: Jwt = decode(token, { complete: true }) as Jwt
 
-  // TODO: Implement token verification
+  // DONE: Implement token verification
   // You should implement it similarly to how it was implemented for the exercise for the lesson 5
   // You can read more about how to do this here: https://auth0.com/blog/navigating-rs256-and-jwks/
-  return undefined
+  if (!jwt) {
+    logger.error('Invalid JWT')
+    throw new Error('401')
+  }
+
+  // Retrive the required key
+  const { header } = jwt;
+  let key = await getKey(jwksUrl, header.kid)
+
+  // Verify the token
+  return verify(token, key.publicKey, { algorithms: ['RS256'] }) as JwtPayload
 }
 
 function getToken(authHeader: string): string {
@@ -75,3 +85,50 @@ function getToken(authHeader: string): string {
 
   return token
 }
+
+const getKey = async (jwkurl, kid) => {
+  // Request key details from the provided URL
+  let res = await Axios.get(jwkurl, {
+    headers: {
+      'Content-Type': 'application/json',
+      "Access-Control-Allow-Origin": "*",
+      'Access-Control-Allow-Credentials': true,
+    }
+  });
+
+  // Extract the keys property from the provided JSON response
+  let keys  = res.data.keys;
+
+  // Extract matching keys
+  const signingKeys = keys
+    .filter(key =>
+        key.alg === 'RS256'
+        && key.kty === 'RSA'
+        && key.use === 'sig'
+        && key.kid
+        && ((key.x5c && key.x5c.length)) 
+    )
+    .map(key => {
+      return { 
+        kid: key.kid,
+        publicKey: `-----BEGIN CERTIFICATE-----\n${key.x5c[0]}\n-----END CERTIFICATE-----\n` // certificate
+      };
+    });
+
+  if (!signingKeys.length) {
+    logger.error("No keys found!")
+    throw new Error('Invalid signing keys')
+  }
+
+  // Find the relevant key
+  const signingKey = signingKeys.find(key => key.kid === kid); 
+
+  if (!signingKey || !signingKeys.length) {
+    logger.error("No matching key found!")
+    throw new Error('Invalid signing keys')
+  }
+
+  logger.info("Matching key found")
+
+  return signingKey
+};
