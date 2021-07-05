@@ -9,9 +9,7 @@ const app = express()
 app.get('/groups', async (_req, res) => {
   const groups = await getAllGroups()
 
-  res.json({
-    items: groups
-  })
+  res.append('Access-Control-Allow-Origin', '*').json({items: groups})
 })
 
 const server = awsServerlessExpress.createServer(app)
