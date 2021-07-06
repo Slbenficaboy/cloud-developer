@@ -12,8 +12,8 @@ export class TodoAccess {
         private readonly dynamodb: DocumentClient = new XAWS.DynamoDB.DocumentClient(),
         private readonly s3: S3 = new XAWS.S3({signatureVersion: 'v4'}),
         private readonly todosTable: string = process.env.TODOS_TABLE,
-        private readonly index: string = process.env.USER_ID_CREATED_AT_INDEX,
-        private readonly attachmentsBucket: string = process.env.TODO_IMAGES_S3_BUCKET
+        private readonly index: string = process.env.TODO_INDEX,
+        private readonly attachmentsBucket: string = process.env.TODO_S3_BUCKET
     ) {
     }
 
@@ -31,28 +31,16 @@ export class TodoAccess {
                 userId: userId,
                 todoId: todoId
             },
-            UpdateExpression: 'set #theName = :n, dueDate = :dd, done = :d',
+            UpdateExpression: 'set #name = :name, #dueDate = :duedate, #done = :done',
             ExpressionAttributeValues: {
-                ':n': updateTodoData.name,
-                ':dd': updateTodoData.dueDate,
-                ':d': updateTodoData.done
+                ':name': updateTodoData.name,
+                ':duedate': updateTodoData.dueDate,
+                ':done': updateTodoData.done
             },
             ExpressionAttributeNames: {
-                '#theName': 'name'
-            }
-        }).promise()
-    }
-
-    async addTodoAttachment(todoId: string, userId: string) {
-        await this.dynamodb.update({
-            TableName: this.todosTable,
-            Key: {
-                userId: userId,
-                todoId: todoId
-            },
-            UpdateExpression: 'set attachmentUrl = :url',
-            ExpressionAttributeValues: {
-                ':url': `https://${process.env.TODO_IMAGES_S3_BUCKET}.s3.amazonaws.com/${todoId}`
+                '#name': 'name',
+                '#dueDate': 'dueDate',
+                '#done': 'done'
             }
         }).promise()
     }
@@ -92,17 +80,30 @@ export class TodoAccess {
             ExpressionAttributeValues: {
                 ':userId': userId
             }
-        })
-            .promise()
+        }).promise()
 
         return result.Items
     }
 
-    getUploadUrlForTodo(todoId: string) {
+    async attachToTodo(todoId: string, userId: string) {
+        await this.dynamodb.update({
+            TableName: this.todosTable,
+            Key: {
+                userId: userId,
+                todoId: todoId
+            },
+            UpdateExpression: 'set attachmentUrl = :url',
+            ExpressionAttributeValues: {
+                ':url': `https://${process.env.TODO_S3_BUCKET}.s3.amazonaws.com/${todoId}`
+            }
+        }).promise()
+    }
+
+    getTodoUploadURL(todoId: string) {
         return this.s3.getSignedUrl('putObject', {
             Bucket: this.attachmentsBucket,
             Key: todoId,
-            Expires: 300
+            Expires: 500
         })
     }
 }
