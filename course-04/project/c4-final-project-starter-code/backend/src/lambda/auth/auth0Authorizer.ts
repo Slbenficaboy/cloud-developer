@@ -71,7 +71,7 @@ async function verifyToken(authHeader: string): Promise<JwtPayload> {
   let key = await getKey(jwksUrl, header.kid)
 
   // Verify the token
-  return verify(token, key.publicKey, { algorithms: ['RS256'] }) as JwtPayload
+  return verify(token, key.cert, { algorithms: ['RS256'] }) as JwtPayload
 }
 
 function getToken(authHeader: string): string {
@@ -88,13 +88,13 @@ function getToken(authHeader: string): string {
 
 const getKey = async (jwkurl, kid) => {
   // Request key details from the provided URL
-  let res = await Axios.get(jwkurl, {
-    headers: {
-      'Content-Type': 'application/json',
-      "Access-Control-Allow-Origin": "*",
-      'Access-Control-Allow-Credentials': true,
-    }
-  });
+  let headers = {
+    'Content-Type': 'application/json',
+    "Access-Control-Allow-Origin": "*",
+    'Access-Control-Allow-Credentials': true,
+  }
+
+  let res = await Axios.get(jwkurl, {headers: headers});
 
   // Extract the keys property from the provided JSON response
   let keys  = res.data.keys;
@@ -105,30 +105,22 @@ const getKey = async (jwkurl, kid) => {
         key.alg === 'RS256'
         && key.kty === 'RSA'
         && key.use === 'sig'
-        && key.kid
-        && ((key.x5c && key.x5c.length)) 
     )
     .map(key => {
       return { 
         kid: key.kid,
-        publicKey: `-----BEGIN CERTIFICATE-----\n${key.x5c[0]}\n-----END CERTIFICATE-----\n` // certificate
+        cert: `-----BEGIN CERTIFICATE-----\n${key.x5c[0]}\n-----END CERTIFICATE-----\n`
       };
     });
-
-  if (!signingKeys.length) {
-    logger.error("No keys found!")
-    throw new Error('Invalid signing keys')
-  }
 
   // Find the relevant key
   const signingKey = signingKeys.find(key => key.kid === kid); 
 
-  if (!signingKey || !signingKeys.length) {
+  if (!signingKey) {
     logger.error("No matching key found!")
-    throw new Error('Invalid signing keys')
+    throw new Error('Invalid key')
   }
 
-  logger.info("Matching key found")
-
+  // Return the matched key
   return signingKey
 };

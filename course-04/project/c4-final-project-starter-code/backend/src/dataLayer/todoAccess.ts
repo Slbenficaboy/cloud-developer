@@ -11,22 +11,23 @@ export class TodoAccess {
     constructor(
         private readonly dynamodb: DocumentClient = new XAWS.DynamoDB.DocumentClient(),
         private readonly s3: S3 = new XAWS.S3({signatureVersion: 'v4'}),
-        private readonly todosTable: string = process.env.TODOS_TABLE,
+
+        private readonly todoTable: string = process.env.TODOS_TABLE,
         private readonly index: string = process.env.TODO_INDEX,
-        private readonly attachmentsBucket: string = process.env.TODO_S3_BUCKET
+        private readonly todoS3Bucket: string = process.env.TODO_S3_BUCKET
     ) {
     }
 
     async saveTodo(todo: TodoItem) {
         await this.dynamodb.put({
-            TableName: this.todosTable,
+            TableName: this.todoTable,
             Item: todo
         }).promise()
     }
 
     async updateTodo(todoId: string, userId: string, updateTodoData: UpdateTodoRequest) {
         await this.dynamodb.update({
-            TableName: this.todosTable,
+            TableName: this.todoTable,
             Key: {
                 userId: userId,
                 todoId: todoId
@@ -47,7 +48,7 @@ export class TodoAccess {
 
     async deleteTodo(todoId: string, userId: string) {
         await this.dynamodb.delete({
-            TableName: this.todosTable,
+            TableName: this.todoTable,
             Key: {
                 userId: userId,
                 todoId: todoId
@@ -57,24 +58,23 @@ export class TodoAccess {
 
     async findTodo(todoId: string, userId: string): Promise<TodoItem> | undefined {
         const result = await this.dynamodb.get({
-            TableName: this.todosTable,
+            TableName: this.todoTable,
             Key: {
                 userId: userId,
                 todoId: todoId
             }
         }).promise()
 
-        if (result.Item) {
-            return result.Item as TodoItem
+        if (!result.Item) {
+            return undefined
         }
 
-        return undefined
+        return result.Item as TodoItem
     }
-
 
     async getTodos(userId: string) {
         const result = await this.dynamodb.query({
-            TableName: this.todosTable,
+            TableName: this.todoTable,
             IndexName: this.index,
             KeyConditionExpression: 'userId = :userId',
             ExpressionAttributeValues: {
@@ -87,7 +87,7 @@ export class TodoAccess {
 
     async attachToTodo(todoId: string, userId: string) {
         await this.dynamodb.update({
-            TableName: this.todosTable,
+            TableName: this.todoTable,
             Key: {
                 userId: userId,
                 todoId: todoId
@@ -101,7 +101,7 @@ export class TodoAccess {
 
     getTodoUploadURL(todoId: string) {
         return this.s3.getSignedUrl('putObject', {
-            Bucket: this.attachmentsBucket,
+            Bucket: this.todoS3Bucket,
             Key: todoId,
             Expires: 500
         })

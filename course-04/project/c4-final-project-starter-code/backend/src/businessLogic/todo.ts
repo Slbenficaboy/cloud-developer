@@ -10,27 +10,29 @@ const logger = createLogger("todos-bl")
 
 export class TodoBL {
     async createNew(newTodoData: CreateTodoRequest, userId: string) {
+        const todoId = uuid.v4()
+        
         const newTodo: TodoItem = {
             userId: userId,
-            todoId: uuid.v4(),
+            todoId: todoId,
             createdAt: new Date().toISOString(),
-            ...newTodoData,
-            done: false
+            done: false,
+            ...newTodoData
         }
         await todoAccess.saveTodo(newTodo)
-        logger.info(`New todo item ${newTodo.todoId} created by user ${userId}`)
-        delete newTodo['userId']
+        logger.info(`New todo item ${todoId} created by user ${userId}`)
         return newTodo
     }
 
     async delete(todoId: string, userId: string) {
         const todo = await todoAccess.findTodo(todoId, userId)
-        if (todo) {
-            await todoAccess.deleteTodo(todoId, userId);
-            logger.info(`Todo ${todoId} deleted by user ${userId}`)
-            return todo
+        if (!todo) {
+            return undefined
         }
-        return undefined
+
+        await todoAccess.deleteTodo(todoId, userId);
+        logger.info(`Todo ${todoId} deleted by user ${userId}`)
+        return todo
     }
 
     async findAll(userId: string) {
@@ -40,21 +42,23 @@ export class TodoBL {
 
     async update(todoId: string, updateTodoData: UpdateTodoRequest, userId: string) {
         const oldTodo = await todoAccess.findTodo(todoId, userId)
-        if (oldTodo) {
-            await todoAccess.updateTodo(todoId, userId, updateTodoData)
-            logger.info(`Todo item ${todoId} updated by user ${userId}`)
-            return oldTodo
+        if (!oldTodo) {
+            return undefined
         }
-        return undefined
+        
+        await todoAccess.updateTodo(todoId, userId, updateTodoData)
+        logger.info(`Todo item ${todoId} updated by user ${userId}`)
+        return oldTodo
     }
 
     async createAttachment(todoId: string, userId: string) {
         const todo = await todoAccess.findTodo(todoId, userId)
-        if (todo) {
-            await todoAccess.attachToTodo(todoId, userId);
-            logger.info(`Attachment added to ${todoId} by user ${userId}`)
-            return todoAccess.getTodoUploadURL(todoId)
+        if (!todo) {
+            return undefined
         }
-        return undefined
+        
+        await todoAccess.attachToTodo(todoId, userId);
+        logger.info(`Attachment added to ${todoId} by user ${userId}`)
+        return todoAccess.getTodoUploadURL(todoId)
     }
 }

@@ -8,14 +8,15 @@ import {getUserId} from "../utils";
 const todoBL = new TodoBL()
 
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  // DONE: Get all TODO items for a current user
-  return {
-    statusCode: 200,
-    headers: {
+    // DONE: Get all TODO items for a current user
+    let statusCode = 200
+    let headers = {
         'Access-Control-Allow-Origin': '*'
-    },
-    body: JSON.stringify({
-        items: await todoBL.findAll(getUserId(event))
-    })
-}
+    }
+
+    return {
+        statusCode: statusCode,
+        headers: headers,
+        body: JSON.stringify({items: await todoBL.findAll(getUserId(event))})
+    }
 }
